@@ -1,0 +1,4 @@
+{
+    "python.defaultInterpreterPath": "/home/alfonso/miniconda3/envs/sage",
+    "python.createEnvironment.trigger": "off"
+}
