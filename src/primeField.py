@@ -1,4 +1,4 @@
-from src import FiniteField, FiniteFieldElement, millerRabin
+from src import FiniteField, FiniteFieldElement, millerRabin, IntegerRing
 from random import randint
 
 class PrimeField(FiniteField):
@@ -19,120 +19,101 @@ class PrimeField(FiniteField):
     def characteristic(self):
         return self.p
 
-    def add(self, a, b):
-        return PrimeFieldElement(self, (a.value + b.value) % self.p)
+    def compatible(self, other):
+        if isinstance(other, IntegerRing):
+            return True
+        if isinstance(other, 'PrimeField'):
+            return self.p == other.p
 
-    def subtract(self, a, b):
-        return PrimeFieldElement(self, (a.value - b.value) % self.p)
-
-    def equal(self, a, b):
-        return a.value == b.value
-
-    def negative(self, a):
-        return PrimeFieldElement(self, self.p - a.value)
-
-    def multiply(self, a, b):
-        """
-        Multiplies two elements in the prime field.
-        a and b can be either integers or PrimeFieldElement instances.
-
-        Args:
-            a : An element of the prime field (int or PrimeFieldElement)
-            b : An element of the prime field (int or PrimeFieldElement)
-        Returns:
-            A new PrimeFieldElement representing the product of a and b in the prime field.
-        """
-        return PrimeFieldElement(self, (a.value * b.value) % self.p)
-
-    def inverse(self, a):
-        if a.value == 0:
-            raise ValueError("Cannot compute inverse of zero")
-        # Using Fermat's little theorem for prime fields
-        return PrimeFieldElement(self, pow(a.value, self.p - 2, self.p))
-
-    def divide(self, a, b):
-        if b.value == 0:
-            raise ZeroDivisionError("Cannot divide by zero")
-        return self.multiply(a, self.inverse(b))
-
-    def power(self, a, exponent: int):
-        if isinstance(a, PrimeFieldElement):
-            a = a.value
-        return pow(a, exponent, self.p)
-
-    def get_order(self, a):
-        if isinstance(a, int):
-            # Si a es un entero, lo convertimos a un elemento del cuerpo
-            a = PrimeFieldElement(self, a)
-        if isinstance(a, PrimeFieldElement):
-            a = a.value
-            if a == 0:
-                return 0 
-            else:
-                return self.p - 1
-        else:
-            raise ValueError("Argument must be an integer or a PrimeFieldElement")
-
-    def random_element(self):
+    def random_element(self, size: int = 0):
         return PrimeFieldElement(self, randint(0, self.p - 1))
+
+    def convert(self, element):
+        if isinstance(element, PrimeFieldElement):
+            return element
+        if isinstance(element, int):
+            return PrimeFieldElement(self, element)
+        return None
 
 class PrimeFieldElement(FiniteFieldElement):
     def __init__(self, field: PrimeField, value: int):
-        if not (0 <= value < field.p):
-            raise ValueError("Value is not in the field")
         self.value = value % field.p
         super().__init__(field)
 
     def __add__(self, other):
-        if isinstance(other, int):
-            other = PrimeFieldElement(self.field, other)
-        if isinstance(other, PrimeFieldElement):
-            return self.field.add(self, other)
-        return NotImplemented
+        other = self.field.convert(other)
+        if other is None:
+            return NotImplemented
+        return PrimeFieldElement(self.field, (self.value + other.value % self.field.p))
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __sub__(self, other):
-        if isinstance(other, int):
-            other = PrimeFieldElement(self.field, other)
-        if isinstance(other, PrimeFieldElement):
-            return self.field.subtract(self, other)
-        return NotImplemented
+        other = self.field.convert(other)
+        if other is None:
+            return NotImplemented
+        return PrimeFieldElement(self.field, (self.value - other.value % self.field.p))
+
+    def __rsub__(self, other):
+        return self.__sub__(other)
         
     def __mul__(self, other):
-        if isinstance(other, int):
-            other = PrimeFieldElement(self.field, other)
-        if isinstance(other, PrimeFieldElement):
-            return self.field.multiply(self, other)
-        return NotImplemented
+        other = self.field.convert(other)
+        if other is None:
+            return NotImplemented
+        return PrimeFieldElement(self.field, (self.value * other.value % self.field.p))
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    @property
+    def inverse(self):
+        return PrimeFieldElement(self.field, pow(self.value, -1, self.field.p))
+
     def __truediv__(self, other):
-        if isinstance(other, int):
-            other = PrimeFieldElement(self.field, other)
-        if isinstance(other, PrimeFieldElement):
-            return self.field.divide(self, other)
-        return NotImplemented
+        other = self.field.convert(other)
+        if other is None:
+            return NotImplemented
+        return self.__mul__(other.inverse)
+
+    def __rtruediv__(self, other):
+        return self.inverse.__mul__(other)
 
     def __eq__(self, other):
-        if isinstance(other, int):
-            other = PrimeFieldElement(self.field, other)
-        if isinstance(other, PrimeFieldElement):
-            return self.field.equal(self, other)
-        return NotImplemented
+        other = self.field.convert(other)
+        if other is None:
+            return NotImplemented
+        return self.value == other.value
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __neg__(self):
-        return self.field.negative(self)
+        return PrimeFieldElement(self.field, -self.value)
 
     def __pow__(self, exponent):
-        if isinstance(exponent, int):
-            return self.field.power(self, exponent)
-        return NotImplemented
+        if not isinstance(exponent, int):
+            raise ValueError(f"exponent: {exponent} is not an integer")
+        if exponent > 0:
+            res = 1
+            for _ in range(exponent):
+                res *= self.value
+                res %= self.field.p
+            return PrimeFieldElement(self.field, res)
+        elif exponent < 0:
+            self.inverse.__pow__(-exponent)
+        else:
+            return self.field.one
+    @property
+    def order(self):
+        if self.value == 0:
+            return 
+        return self.field.p - 1
 
-    def __order__(self):
-        return self.field.get_order(self)
+    def __str__(self):
+        return f"({self.value} mod {self.field.p})"
 
+    def __repr__(self):
+        return f"PrimeFieldElement: {self.__str__()}"
     

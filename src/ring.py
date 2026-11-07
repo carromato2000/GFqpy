@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+from random import randint
 
+# Trataremos con anillos conmutativos con unidad
 class Ring(ABC):
     @property
     @abstractmethod
@@ -19,6 +21,10 @@ class Ring(ABC):
     def convert(self, item):
         pass
 
+    @abstractmethod
+    def random_element(self, size: int):
+        pass
+
 class RingElement(ABC):
     def __init__(self, ring: Ring, value=None):
         self.ring = ring
@@ -29,7 +35,7 @@ class RingElement(ABC):
 
     @abstractmethod
     def __radd__(self, other):
-        
+        pass
 
     @abstractmethod
     def __sub__(self, other):
@@ -77,3 +83,12 @@ class IntegerRing:
 
     def convert(self, item):
         return item if isinstance(item, int) else None
+
+    def random_element(self, size: int = 1024):
+        if size < 1:
+            raise ValueError("El número de bits debe ser al menos 1")
+        
+        min = -2**(size - 1)
+        max = 2**(size - 1) - 1
+        
+        return randint(min, max)

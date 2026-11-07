@@ -10,6 +10,10 @@ class PolynomialRing(Ring):
     def one(self):
         return Polynomial({0: self.ring.one}, self)
 
+    @property
+    def characteristic(self):
+        return self.ring.characteristic
+
     def compatible(self, other: Ring) -> bool:
         if not isinstance(other, PolynomialRing):
             return self.ring.compatible(other)
@@ -24,8 +28,21 @@ class PolynomialRing(Ring):
             item = self.ring.convert(item)
             return Polynomial({0: item}, self) if item is not None else None
 
+    def random_element(self, degree: int | float, size: int = 1024):
+        if isinstance(degree, float):
+            if degree == -inf:
+                coeffs = {}
+            else:
+                raise ValueError(f"Invalid degree: {degree}")
+        else:
+            if degree < 0:
+                raise ValueError(f"Invalid degree: {degree}")
+            coeffs = {i: self.ring.random_element(size) for i in range(degree+1)}        
+        return Polynomial(coeffs, self, self.letter)
+
+
     def gen(self):
-        return Polynomial({1: self.ring.one}, self)
+        return Polynomial({1: self.ring.one}, self, self.letter)
         
 class Polynomial():
     # Convención: 

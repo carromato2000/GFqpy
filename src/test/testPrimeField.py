@@ -51,7 +51,7 @@ class TestPrimeField(unittest.TestCase):
             with self.subTest(a=a_val, expected_inverse=expected_inverse, prime=prime):
                 self.field = PrimeField(prime)  
                 a = PrimeFieldElement(field = self.field, value = a_val)
-                inverse_a = self.field.inverse(a)
+                inverse_a = a.inverse
                 self.assertEqual(inverse_a, expected_inverse)
 
     def test_subtraction(self):
@@ -91,7 +91,7 @@ class TestPrimeField(unittest.TestCase):
             with self.subTest(a=a_val, exponent=exponent, expected=expected, prime=prime):
                 self.field = PrimeField(prime)
                 a = PrimeFieldElement(field = self.field, value = a_val)
-                result = self.field.power(a.value, exponent)
+                result = a**exponent
                 self.assertEqual(result, expected)
 
 if __name__ == '__main__':
